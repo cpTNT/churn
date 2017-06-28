@@ -75,7 +75,12 @@ FROM (SELECT *
       AND   is_shipment_cancelled = 0) AS fc
   LEFT JOIN stg1_consource AS con ON con.con_source_cd = fc.con_source_cd
   LEFT JOIN stg1_product AS prd ON fc.product_id = prd.product_id
-  LEFT JOIN stg1_accntxref AS acc ON fc.cac_id = acc.cac_id
+  INNER JOIN (
+    SELECT acc.*, acc_country 
+    FROM stg1_accntxref acc
+	INNER JOIN CHURN_ACTIVE_CUSTOMERS churn
+	ON acc.CUS_ID = churn.CUS_ID
+  ) AS acc ON fc.cac_id = acc.cac_id
 WHERE fc.is_invoice_cancelled != 1
 AND   acc.cus_id > 0
 AND   fc.is_shipment_cancelled != 1
@@ -84,7 +89,6 @@ AND   fc.shipments > 0
 AND   fc.is_invoice_cancelled = 0
 AND   fc.is_shipment_cancelled = 0
 AND   con_create_dt >= '2014-01-01'
-AND   acc.lac_legacy_cou_cd IN ('UK','IE','NL','DE','CY','GR', 'BE')
 GROUP BY acc.cus_id,
          acc.lac_legacy_cou_cd,
          DATE_TRUNC('month',fc.con_create_dt),
@@ -95,6 +99,8 @@ ORDER BY cus_id,
          DATE_TRUNC('month',fc.con_create_dt),
          DATE_TRUNC('quarter',fc.con_create_dt),
          DATE_TRUNC('year',fc.con_create_dt);
+
+ANALYZE stg2_Customer_downtraders_monthly;
 
 -- monthly expand table
 DROP TABLE if exists stg2_Customer_downtraders_monthly_exp_all1;
@@ -116,6 +122,7 @@ ORDER BY cus_id2,
          acc_country2,
          month_dt2;
 
+ANALYZE stg2_Customer_downtraders_monthly_exp_all1;
 --select * from stg2_Customer_downtraders_monthly_exp_all1 ORDER BY cus_id2,         month_dt2 limit 150;
 DROP TABLE if exists stg2_Customer_downtraders_monthly_exp_all2;
 
@@ -133,6 +140,8 @@ FROM stg2_Customer_downtraders_monthly_exp_all1 AS t1
 ORDER BY t1.cus_id2,
          t1.acc_country2,
          t1.month_dt2;
+
+ANALYZE stg2_Customer_downtraders_monthly_exp_all2;
 
 DROP TABLE if exists stg2_Customer_downtraders_monthly_cus;
 
@@ -157,6 +166,7 @@ ORDER BY cus_id2,
          acc_country2,
          month_dt2;
 
+ANALYZE stg2_Customer_downtraders_monthly_cus;
 --select * from stg2_Customer_downtraders_monthly_seq limit 100;
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -220,7 +230,7 @@ SELECT *,
        CASE
          WHEN month_seq_con > 24 THEN AVG(shipments) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN 24 PRECEDING AND CURRENT ROW)
        END AS month_avg_shipments_24,
-       CASE
+/*        CASE
          WHEN month_seq_con > 1 THEN AVG(sum_volume) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)
        END AS month_avg_sum_volume_1,
        CASE
@@ -301,7 +311,7 @@ SELECT *,
        CASE
          WHEN month_seq_con > 24 THEN AVG(sum_weight) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN 24 PRECEDING AND CURRENT ROW)
        END AS month_avg_sum_weight_24,
-       CASE
+ */       CASE
          WHEN month_seq_con > 1 THEN stddev_pop (revenue) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)
        END AS month_std_revenue_1,
        CASE
@@ -355,7 +365,7 @@ SELECT *,
        CASE
          WHEN month_seq_con > 1 THEN stddev_pop (shipments) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN 24 PRECEDING AND CURRENT ROW)
        END AS month_std_shipments_24,
-       CASE
+       /* CASE
          WHEN month_seq_con > 1 THEN stddev_pop (sum_volume) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)
        END AS month_std_sum_volume_1,
        CASE
@@ -435,7 +445,7 @@ SELECT *,
        END AS month_std_sum_weight_12,
        CASE
          WHEN month_seq_con > 1 THEN stddev_pop (sum_weight) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN 24 PRECEDING AND CURRENT ROW)
-       END AS month_std_sum_weight_24,
+       END AS month_std_sum_weight_24, */
        ---------------------------------------------------
        --Time inbetween
        ---------------------------------------------------
@@ -465,8 +475,8 @@ SELECT *,
        END AS month_std_months_between12,
        CASE
          WHEN month_seq_con > 1 THEN stddev_pop (datediff (month,month_dt,month_lag_dt)) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN 24 PRECEDING AND CURRENT ROW)
-       END AS month_std_months_between24,
-       CASE
+       END AS month_std_months_between24
+/*        CASE
          WHEN month_seq_count_consignments > 0 THEN CAST(CAST(month_seq_is_sender_pays AS FLOAT) / month_seq_count_consignments AS FLOAT)
          ELSE 0
        END AS m_perc_is_sender_pays,
@@ -522,23 +532,23 @@ SELECT *,
          WHEN month_seq_count_consignments > 0 THEN CAST(CAST(month_seq_is_manual_tool AS FLOAT) / month_seq_count_consignments AS FLOAT)
          ELSE 0
        END AS m_perc_is_manual_tool
-FROM (
+ */FROM (
 -- at this level we have already aggregated all our data on an account con_create dt
 -- we will create using windowing the necessary consignment and con create date information
 -- on teh next step will create a customer level table
 -- it runs
 
-     SELECT*,ROW_NUMBER() OVER (PARTITION BY cus_id,acc_country
-ORDER BY month_dt) AS month_seq_con,
-         SUM(is_sender_pays) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_is_sender_pays,
+     SELECT *
+	     ,ROW_NUMBER() OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt) AS month_seq_con,
+         -- SUM(is_sender_pays) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_is_sender_pays,
          SUM(count_consignments) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_count_consignments,
-         SUM(is_receiver_pays) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_is_receiver_pays,
+/*          SUM(is_receiver_pays) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_is_receiver_pays,
          SUM(is_international_shipment) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_is_international_shipment,
          SUM(is_dangerous_shipment) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_is_dangerous_shipment,
-         SUM(goods_value) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_goods_value,
+         SUM(goods_value) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_goods_value,*/
          SUM(shipments) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_shipments,
          SUM(revenue) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_revenue,
-         SUM(sum_volume) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_volume,
+/*         SUM(sum_volume) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_volume,
          SUM(sum_items) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_items,
          SUM(sum_weight) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_weight,
          -- Digital  
@@ -580,83 +590,90 @@ ORDER BY month_dt) AS month_seq_con,
          SUM(prod_is_FR) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_prod_is_FR,
          SUM(prod_is_FR) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_prod_is_EX,
          AVG(goods_value) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_avg_goods_value,
+ */
          AVG(shipments) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_avg_shipments,
          AVG(revenue) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_avg_revenue,
-         AVG(sum_volume) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_avg_volume,
+/*          AVG(sum_volume) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_avg_volume,
          AVG(sum_items) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_avg_items,
          AVG(sum_weight) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_avg_weight,
          stddev_pop(goods_value) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_std_goods_value,
+ */
          stddev_pop(shipments) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_std_shipments,
          stddev_pop(revenue) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_std_revenue,
-         stddev_pop(sum_volume) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_std_volume,
+/*          stddev_pop(sum_volume) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_std_volume,
          stddev_pop(sum_items) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_std_items,
          stddev_pop(sum_weight) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS month_seq_std_weight,
+ */         
          LAG(month_dt,1) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt) AS month_lag_dt,
-         LAG(month_dt,1) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt DESC) AS month_churn_lag_dt FROM (SELECT DISTINCT month_dt2 AS month_dt,
-                                                                                                                          cus_id2 AS cus_id,
-                                                                                                                          acc_country2 AS acc_country,
-                                                                                                                          CASE
-                                                                                                                            WHEN max_con_create_dt IS NULL THEN 0
-                                                                                                                            ELSE 1
-                                                                                                                          END AS active_month,
-                                                                                                                          CASE
-                                                                                                                            WHEN max_con_create_dt IS NULL THEN month_dt2
-                                                                                                                            ELSE max_con_create_dt
-                                                                                                                          END AS max_con_create_dt,
-                                                                                                                          CASE
-                                                                                                                            WHEN min_con_create_dt IS NULL THEN month_dt2
-                                                                                                                            ELSE min_con_create_dt
-                                                                                                                          END AS min_con_create_dt,
-                                                                                                                          COALESCE(count_consignments,0) AS count_consignments,
-                                                                                                                          COALESCE(is_sender_pays,0) AS is_sender_pays,
-                                                                                                                          COALESCE(is_receiver_pays,0) AS is_receiver_pays,
-                                                                                                                          COALESCE(is_international_shipment,0) AS is_international_shipment,
-                                                                                                                          COALESCE(is_dangerous_shipment,0) AS is_dangerous_shipment,
-                                                                                                                          COALESCE(goods_value,0) AS goods_value,
-                                                                                                                          COALESCE(shipments,0) AS shipments,
-                                                                                                                          COALESCE(revenue,0) AS revenue,
-                                                                                                                          COALESCE(sum_volume,0) AS sum_volume,
-                                                                                                                          COALESCE(sum_items,0) AS sum_items,
-                                                                                                                          COALESCE(sum_weight,0) AS sum_weight,
-                                                                                                                          COALESCE(is_express_prdct,0) AS is_express_prdct,
-                                                                                                                          COALESCE(is_economy_prdct,0) AS is_economy_prdct,
-                                                                                                                          COALESCE(is_special_prdct,0) AS is_special_prdct,
-                                                                                                                          COALESCE(is_express_tool,0) AS is_express_tool,
-                                                                                                                          COALESCE(is_mytnt_tool,0) AS is_mytnt_tool,
-                                                                                                                          COALESCE(is_local_tool,0) AS is_local_tool,
-                                                                                                                          COALESCE(is_open_tool,0) AS is_open_tool,
-                                                                                                                          COALESCE(is_custom_tool,0) AS is_custom_tool,
-                                                                                                                          COALESCE(is_digital_tool,0) AS is_digital_tool,
-                                                                                                                          COALESCE(is_manual_tool,0) AS is_manual_tool,
-                                                                                                                          COALESCE(prod_is_va,0) AS prod_is_va,
-                                                                                                                          COALESCE(prod_is_dt,0) AS prod_is_dt,
-                                                                                                                          COALESCE(prod_is_xf,0) AS prod_is_xf,
-                                                                                                                          COALESCE(prod_is_ef,0) AS prod_is_ef,
-                                                                                                                          COALESCE(prod_is_ee,0) AS prod_is_ee,
-                                                                                                                          COALESCE(prod_is_ss,0) AS prod_is_ss,
-                                                                                                                          COALESCE(prod_is_se,0) AS prod_is_se,
-                                                                                                                          COALESCE(prod_is_ot,0) AS prod_is_ot,
-                                                                                                                          COALESCE(prod_is_fr,0) AS prod_is_fr,
-                                                                                                                          COALESCE(prod_is_ex,0) AS prod_is_ex,
-                                                                                                                          COALESCE(digital_revenue,0) AS digital_revenue,
-                                                                                                                          COALESCE(digital_shipments,0) AS digital_shipments,
-                                                                                                                          COALESCE(digital_volume,0) AS digital_volume,
-                                                                                                                          COALESCE(digital_weight,0) AS digital_weight,
-                                                                                                                          COALESCE(digital_items,0) AS digital_items,
-                                                                                                                          COALESCE(is_mytnt_revenue,0) AS is_mytnt_revenue,
-                                                                                                                          COALESCE(is_mytnt_shipments,0) AS is_mytnt_shipments,
-                                                                                                                          COALESCE(is_mytnt_volume,0) AS is_mytnt_volume,
-                                                                                                                          COALESCE(is_mytnt_weight,0) AS is_mytnt_weight,
-                                                                                                                          COALESCE(is_mytnt_items,0) AS is_mytnt_items,
-                                                                                                                          COALESCE(no_dig_revenue,0) AS no_dig_revenue,
-                                                                                                                          COALESCE(no_dig_shipments,0) AS no_dig_shipments,
-                                                                                                                          COALESCE(no_dig_volume,0) AS no_dig_volume,
-                                                                                                                          COALESCE(no_dig_weight,0) AS no_dig_weight,
-                                                                                                                          COALESCE(no_dig_items,0) AS no_dig_items
-                                                                                                                   FROM stg2_Customer_downtraders_monthly_cus));
+         LAG(month_dt,1) OVER (PARTITION BY cus_id,acc_country ORDER BY month_dt DESC) AS month_churn_lag_dt 
+	 FROM (
+	   SELECT DISTINCT month_dt2 AS month_dt,
+		  cus_id2 AS cus_id,
+		  acc_country2 AS acc_country,
+		  CASE
+			WHEN max_con_create_dt IS NULL THEN 0
+			ELSE 1
+		  END AS active_month,
+		  CASE
+			WHEN max_con_create_dt IS NULL THEN month_dt2
+			ELSE max_con_create_dt
+		  END AS max_con_create_dt,
+		  CASE
+			WHEN min_con_create_dt IS NULL THEN month_dt2
+			ELSE min_con_create_dt
+		  END AS min_con_create_dt,
+		  COALESCE(shipments,0) AS shipments,
+		  COALESCE(revenue,0) AS revenue,
+		  COALESCE(count_consignments,0) AS count_consignments
+/* 		  COALESCE(is_sender_pays,0) AS is_sender_pays,
+		  COALESCE(is_receiver_pays,0) AS is_receiver_pays,
+		  COALESCE(is_international_shipment,0) AS is_international_shipment,
+		  COALESCE(is_dangerous_shipment,0) AS is_dangerous_shipment,
+		  COALESCE(goods_value,0) AS goods_value,
+		  COALESCE(sum_volume,0) AS sum_volume,
+		  COALESCE(sum_items,0) AS sum_items,
+		  COALESCE(sum_weight,0) AS sum_weight,
+		  COALESCE(is_express_prdct,0) AS is_express_prdct,
+		  COALESCE(is_economy_prdct,0) AS is_economy_prdct,
+		  COALESCE(is_special_prdct,0) AS is_special_prdct,
+		  COALESCE(is_express_tool,0) AS is_express_tool,
+		  COALESCE(is_mytnt_tool,0) AS is_mytnt_tool,
+		  COALESCE(is_local_tool,0) AS is_local_tool,
+		  COALESCE(is_open_tool,0) AS is_open_tool,
+		  COALESCE(is_custom_tool,0) AS is_custom_tool,
+		  COALESCE(is_digital_tool,0) AS is_digital_tool,
+		  COALESCE(is_manual_tool,0) AS is_manual_tool,
+		  COALESCE(prod_is_va,0) AS prod_is_va,
+		  COALESCE(prod_is_dt,0) AS prod_is_dt,
+		  COALESCE(prod_is_xf,0) AS prod_is_xf,
+		  COALESCE(prod_is_ef,0) AS prod_is_ef,
+		  COALESCE(prod_is_ee,0) AS prod_is_ee,
+		  COALESCE(prod_is_ss,0) AS prod_is_ss,
+		  COALESCE(prod_is_se,0) AS prod_is_se,
+		  COALESCE(prod_is_ot,0) AS prod_is_ot,
+		  COALESCE(prod_is_fr,0) AS prod_is_fr,
+		  COALESCE(prod_is_ex,0) AS prod_is_ex,
+		  COALESCE(digital_revenue,0) AS digital_revenue,
+		  COALESCE(digital_shipments,0) AS digital_shipments,
+		  COALESCE(digital_volume,0) AS digital_volume,
+		  COALESCE(digital_weight,0) AS digital_weight,
+		  COALESCE(digital_items,0) AS digital_items,
+		  COALESCE(is_mytnt_revenue,0) AS is_mytnt_revenue,
+		  COALESCE(is_mytnt_shipments,0) AS is_mytnt_shipments,
+		  COALESCE(is_mytnt_volume,0) AS is_mytnt_volume,
+		  COALESCE(is_mytnt_weight,0) AS is_mytnt_weight,
+		  COALESCE(is_mytnt_items,0) AS is_mytnt_items,
+		  COALESCE(no_dig_revenue,0) AS no_dig_revenue,
+		  COALESCE(no_dig_shipments,0) AS no_dig_shipments,
+		  COALESCE(no_dig_volume,0) AS no_dig_volume,
+		  COALESCE(no_dig_weight,0) AS no_dig_weight,
+		  COALESCE(no_dig_items,0) AS no_dig_items
+ */   FROM stg2_Customer_downtraders_monthly_cus));
 
+ANALYZE stg2_Customer_downtraders_monthly_seq;
 -- join customer table and fincon daily table and keep only necessary fields
 --create table stg2_Customer_downtraders_monthly_seq_full_backup as select * from stg2_Customer_downtraders_monthly_seq_full;
+
 DROP TABLE if exists stg2_Customer_downtraders_monthly_seq_full;
 --select distinct conf_10_interval_95 from stg2_Customer_downtraders_monthly_seq_full limit 100;
 CREATE TABLE stg2_Customer_downtraders_monthly_seq_full 
@@ -686,10 +703,10 @@ SELECT DISTINCT * /*
        FROM (SELECT t1.*,
                     ABS((datediff (DAY,month_dt,DATE_TRUNC('month',all_min_date)))) AS lifetime,
                     CASE
-                      WHEN seq_shipments > 0 AND seq_revenue > 0 AND seq_volume > 0 THEN 0
+                      WHEN seq_shipments > 0 AND seq_revenue > 0  THEN 0
                       ELSE 7
                     END AS month_seq_days_between,
-                    CASE
+/*                     CASE
                       WHEN month_avg_sum_weight_12 > 0 THEN (month_avg_sum_weight_3 - month_avg_sum_weight_12) / month_avg_sum_weight_12
                       ELSE 0
                     END AS downtrade_monthly_weight_3,
@@ -697,7 +714,7 @@ SELECT DISTINCT * /*
                       WHEN month_avg_sum_weight_12 > 0 THEN (month_avg_sum_weight_6 - month_avg_sum_weight_12) / month_avg_sum_weight_12
                       ELSE 0
                     END AS downtrade_monthly_weight_6,
-                    CASE
+ */                    CASE
                       WHEN month_avg_revenue_12 > 0 THEN (month_avg_revenue_3 - month_avg_revenue_12) / month_avg_revenue_12
                       ELSE 0
                     END AS downtrade_monthly_revenue_3,
@@ -707,11 +724,11 @@ SELECT DISTINCT * /*
                     END AS downtrade_monthly_revenue_6,
                     ----
                     CASE
-                      WHEN t2.max_cons >= 30 AND month_avg_sum_weight_12 > 0 AND t2.all_sum_revenue >= 1000 THEN 1
+                      WHEN t2.max_cons >= 30 AND month_avg_shipments_12 > 0 AND t2.all_sum_revenue >= 1000 THEN 1
                       ELSE 0
                     END AS focus_downtrader_monthly,
                     CASE
-                      WHEN t2.max_cons >= 30 AND month_avg_sum_weight_12 > 0 AND t2.all_sum_revenue >= 300 THEN 1
+                      WHEN t2.max_cons >= 30 AND month_avg_shipments_12 > 0 AND t2.all_sum_revenue >= 300 THEN 1
                       ELSE 0
                     END AS focus_churn_monthly,
                     CASE
@@ -746,10 +763,11 @@ SELECT DISTINCT * /*
                     t2.all_country,
                     t2.seq_ytd_shipments,
                     t2.seq_ytd_revenue,
-                    t2.seq_ytd_volume,
+/*                     t2.seq_ytd_volume,
                     t2.seq_ytd_items,
                     t2.seq_ytd_weight,
-                    --t2.all_lac_legacy_acg_cd,
+ */
+                   --t2.all_lac_legacy_acg_cd,
                     --t2.all_lac_legacy_acct_nr,
                     --t2.all_lac_legacy_nad_cd,
                     t2.all_shipments_2014,
@@ -760,7 +778,7 @@ SELECT DISTINCT * /*
                     t2.all_revenue_2015,
                     t2.all_revenue_2016,
                     t2.all_revenue_2017,
-                    t2.all_sum_volume_2014,
+/*                     t2.all_sum_volume_2014,
                     t2.all_sum_volume_2015,
                     t2.all_sum_volume_2016,
                     t2.all_sum_volume_2017,
@@ -772,7 +790,7 @@ SELECT DISTINCT * /*
                     t2.all_sum_items_2015,
                     t2.all_sum_items_2016,
                     t2.all_sum_items_2017,
-                    t2.all_weekly,
+ */                    t2.all_weekly,
                     t2.all_biweekly,
                     t2.all_monthly,
                     t2.all_quarterly,
@@ -783,15 +801,16 @@ SELECT DISTINCT * /*
                     t2.max_cons,
                     t2.all_count_consignments,
                     t2.count_seq_con,
-                    t2.all_is_sender_pays,
+/*                     t2.all_is_sender_pays,
                     t2.all_is_receiver_pays,
                     t2.all_is_international_shipment,
                     t2.all_is_dangerous_shipment,
                     t2.all_bul_id_orig,
                     t2.all_sum_goods_value,
+*/
                     t2.all_sum_shipments,
                     t2.all_sum_revenue,
-                    t2.all_sum_volume,
+/*                    t2.all_sum_volume,
                     t2.all_sum_items,
                     t2.all_sum_weight,
                     t2.all_is_express_prdct,
@@ -804,13 +823,13 @@ SELECT DISTINCT * /*
                     t2.all_is_custom_tool,
                     t2.all_is_digital_tool,
                     t2.all_is_manual_tool,
-                    t2.all_min_date,
+ */                    t2.all_min_date,
                     t2.all_max_date,
-                    t2.all_avg_goods_value,
                     t2.all_avg_shipments,
                     t2.all_avg_revenue,
-                    t2.all_avg_volume,
-                    t2.all_avg_items,
+/*                    t2.all_avg_volume,
+                    t2.all_avg_goods_value,
+                     t2.all_avg_items,
                     t2.all_avg_weight,
                     t2.all_std_goods_value,
                     t2.all_std_shipments,
@@ -833,8 +852,8 @@ SELECT DISTINCT * /*
                     t2.all_no_dig_volume,
                     t2.all_no_dig_weight,
                     t2.all_no_dig_items,
-                    t2.growth_cust,
-                    t2.st_cus_id,
+                     t2.growth_cust,
+ */                   t2.st_cus_id,
                     t2.cus_cou_id,
                     t2.cust_sales_territory_cd,
                     t2.st_cust_sales_type_desc2,
@@ -844,9 +863,9 @@ SELECT DISTINCT * /*
                     t2.all_perc_half_yearly,
                     t2.all_perc_quarterly,
                     t2.all_perc_yearly,
-                    t2.perc_all_is_sender_pays,
+/*                    t2.perc_all_is_sender_pays,
                     t2.perc_all_is_receiver_pays,
-                    t2.perc_all_is_international_shipment,
+                     t2.perc_all_is_international_shipment,
                     t2.perc_all_is_dangerous_shipment,
                     t2.perc_all_is_express_prdct,
                     t2.perc_all_is_economy_prdct,
@@ -858,10 +877,11 @@ SELECT DISTINCT * /*
                     t2.perc_all_is_custom_tool,
                     t2.perc_all_is_digital_tool,
                     t2.perc_all_is_manual_tool,
+ */
                     t2.conf_10_interval_95,
                     t2.conf_interval_95,
                     t2.churn_days_between,
-                    t2.perc_seq_prod_is_va,
+/*                     t2.perc_seq_prod_is_va,
                     t2.perc_seq_prod_is_dt,
                     t2.perc_seq_prod_is_xf,
                     t2.perc_seq_prod_is_ef,
@@ -871,7 +891,7 @@ SELECT DISTINCT * /*
                     t2.perc_seq_prod_is_ot,
                     t2.perc_seq_prod_is_fr,
                     t2.perc_seq_prod_is_ex,
-                    t2.nrmd_churn_dt,
+ */                    t2.nrmd_churn_dt,
                     t2.nrm_10_churn_dt,
                     t2.yellow_nrmd_churn_dt,
                     t2.yellow_nrm_10_churn_dt,
@@ -901,22 +921,6 @@ ORDER BY all_country,
 GRANT SELECT
   ON stg2_Customer_downtraders_monthly_seq_full
   TO public;
-/*
-SELECT t2.yellow_nrmd_churn_dt,
-       t2.yellow_nrm_10_churn_dt,
-       t2.yellow_conf_10_interval_95,
-       t2.yellow_conf_interval_95
-FROM stg2_Customer_downtraders_monthly_seq_full AS t2;
 
-SELECT *
-FROM stg2_Customer_downtraders_monthly_seq_full
-ORDER BY cus_id DESC LIMIT 1000;
-
---select cus_id, con_create_dt, all_country, count(*) from stg2_customer_daily_metrics_customer group by cus_id, con_create_dt, all_country having count(*)>1 ORDER BY count(*) DESC;
---drop table if exists xx;
---create table xx as select * from stg2_Customer_downtraders_monthly_seq_full where all_lac_legacy_cou_cd = 'GR' and all_max_date > '2017-01-01' order by all_lac_legacy_cou_cd, cus_id, month_dt limit 100000; 
---select * from stg2_Customer_downtraders_monthly_seq_full where cust_sales_type_desc is not null limit 100;
---select distinct all_lac_legacy_cou_cd, count(*) from stg2_Customer_downtraders_monthly_seq_full group by all_lac_legacy_cou_cd order by all_lac_legacy_cou_cd ;
---select * from stg2_customer_metrics_customer where all_min_date > '2016-01-01' order by all_lac_legacy_cou_cd, all_sum_revenue, all_cus_id limit 500000;
-
-stg2_Customer_downtraders_monthly_seq_full
+ANALYZE stg2_Customer_downtraders_monthly_seq_full;
+COMMIT;

@@ -43,9 +43,9 @@ SELECT DISTINCT---dateadd(month,1,m1.dmonth_dt1) AS lag_m,
          --cust_sales_type_desc,
          --cust_sales_territory_desc,
          count_consignments AS count_consignments_lag1,
-         goods_value AS goods_value_lag1,
          shipments AS shipments_lag1,
          revenue AS revenue_lag1,
+/*          goods_value AS goods_value_lag1,
          sum_volume AS sum_volume_lag1,
          sum_items AS sum_items_lag1,
          sum_weight AS sum_weight_lag1,
@@ -54,7 +54,7 @@ SELECT DISTINCT---dateadd(month,1,m1.dmonth_dt1) AS lag_m,
          seq_ytd_volume as seq_ytd_volume_lag1,
          seq_ytd_items as seq_ytd_items_lag1,
          seq_ytd_weight as seq_ytd_weight_lag1,
-         /*
+ */         /*
          digital_revenue AS digital_revenue_lag1,
          digital_shipments AS digital_shipments_lag1,
          digital_volume AS digital_volume_lag1,
@@ -69,24 +69,26 @@ SELECT DISTINCT---dateadd(month,1,m1.dmonth_dt1) AS lag_m,
          no_dig_shipments AS no_dig_shipments_lag1,
          no_dig_volume AS no_dig_volume_lag1,
          no_dig_weight AS no_dig_weight_lag1,
-         no_dig_items AS no_dig_items_lag1,*/ month_seq_avg_goods_value AS month_seq_avg_goods_value_lag1,
+         no_dig_items AS no_dig_items_lag1,*/ 
          month_seq_avg_shipments AS month_seq_avg_shipments_lag1,
          month_seq_avg_revenue AS month_seq_avg_revenue_lag1,
+/* 		 month_seq_avg_goods_value AS month_seq_avg_goods_value_lag1,
          month_seq_avg_volume AS month_seq_avg_volume_lag1,
          month_seq_avg_items AS month_seq_avg_items_lag1,
          month_seq_avg_weight AS month_seq_avg_weight_lag1,
-         /* month_seq_std_goods_value AS month_seq_std_goods_value_lag1,
+ */         /* month_seq_std_goods_value AS month_seq_std_goods_value_lag1,
          month_seq_std_shipments AS month_seq_std_shipments_lag1,
          month_seq_std_revenue AS month_seq_std_revenue_lag1,
          month_seq_std_volume AS month_seq_std_volume_lag1,
          month_seq_std_items AS month_seq_std_items_lag1,
-         month_seq_std_weight AS month_seq_std_weight_lag1,*/ month_avg_revenue_1 AS month_avg_revenue_1_lag1,
+         month_seq_std_weight AS month_seq_std_weight_lag1,*/ 
+		 month_avg_revenue_1 AS month_avg_revenue_1_lag1,
          month_avg_revenue_3 AS month_avg_revenue_3_lag1,
          month_avg_revenue_12 AS month_avg_revenue_12_lag1,
          month_avg_shipments_1 AS month_avg_shipments_1_lag1,
          month_avg_shipments_3 AS month_avg_shipments_3_lag1,
-         month_avg_shipments_12 AS month_avg_shipments_12_lag1,
-         month_avg_sum_volume_1 AS month_avg_sum_volume_1_lag1,
+         month_avg_shipments_12 AS month_avg_shipments_12_lag1
+/*          month_avg_sum_volume_1 AS month_avg_sum_volume_1_lag1,
          month_avg_sum_volume_3 AS month_avg_sum_volume_3_lag1,
          month_avg_sum_volume_12 AS month_avg_sum_volume_12_lag1,
          month_avg_sum_items_1 AS month_avg_sum_items_1_lag1,
@@ -95,7 +97,7 @@ SELECT DISTINCT---dateadd(month,1,m1.dmonth_dt1) AS lag_m,
          month_avg_sum_weight_1 AS month_avg_sum_weight_1_lag1,
          month_avg_sum_weight_3 AS month_avg_sum_weight_3_lag1,
          month_avg_sum_weight_12 AS month_avg_sum_weight_12_lag1
-  FROM stg2_Customer_downtraders_monthly_seq_full
+ */  FROM stg2_Customer_downtraders_monthly_seq_full
   WHERE cus_id > 0
   --and  acc_country IN ('IE','GB', 'GR', 'PT')
   AND   all_max_date > 0
@@ -121,18 +123,18 @@ SELECT DISTINCT---dateadd(month,1,m1.dmonth_dt1) AS lag_m,
          cus_id AS cus_id_lag3,
          active_month AS active_month_lag3,
          count_consignments AS count_consignments_lag3,
-         goods_value AS goods_value_lag3,
          shipments AS shipments_lag3,
          revenue AS revenue_lag3,
+/*          goods_value AS goods_value_lag3,
          sum_volume AS sum_volume_lag3,
          sum_items AS sum_items_lag3,
          sum_weight AS sum_weight_lag3,
-         seq_ytd_shipments as seq_ytd_shipments_lag3,
+ */         seq_ytd_shipments as seq_ytd_shipments_lag3,
          seq_ytd_revenue as seq_ytd_revenue_lag3,
-         seq_ytd_volume as seq_ytd_volume_lag3,
+/*          seq_ytd_volume as seq_ytd_volume_lag3,
          seq_ytd_items as seq_ytd_items_lag3,
          seq_ytd_weight as seq_ytd_weight_lag3,
-         /*
+ */         /*
          digital_revenue AS digital_revenue_lag3,
          digital_shipments AS digital_shipments_lag3,
          digital_volume AS digital_volume_lag3,
@@ -147,24 +149,26 @@ SELECT DISTINCT---dateadd(month,1,m1.dmonth_dt1) AS lag_m,
          no_dig_shipments AS no_dig_shipments_lag3,
          no_dig_volume AS no_dig_volume_lag3,
          no_dig_weight AS no_dig_weight_lag3,
-         no_dig_items AS no_dig_items_lag3,*/ month_seq_avg_goods_value AS month_seq_avg_goods_value_lag3,
+         no_dig_items AS no_dig_items_lag3,*/ 
          month_seq_avg_shipments AS month_seq_avg_shipments_lag3,
          month_seq_avg_revenue AS month_seq_avg_revenue_lag3,
+		 /* month_seq_avg_goods_value AS month_seq_avg_goods_value_lag3,
          month_seq_avg_volume AS month_seq_avg_volume_lag3,
          month_seq_avg_items AS month_seq_avg_items_lag3,
          month_seq_avg_weight AS month_seq_avg_weight_lag3,
-         /* month_seq_std_goods_value AS month_seq_std_goods_value_lag3,
+          *//* month_seq_std_goods_value AS month_seq_std_goods_value_lag3,
          month_seq_std_shipments AS month_seq_std_shipments_lag3,
          month_seq_std_revenue AS month_seq_std_revenue_lag3,
          month_seq_std_volume AS month_seq_std_volume_lag3,
          month_seq_std_items AS month_seq_std_items_lag3,
-         month_seq_std_weight AS month_seq_std_weight_lag3,*/ month_avg_revenue_1 AS month_avg_revenue_1_lag3,
+         month_seq_std_weight AS month_seq_std_weight_lag3,*/ 
+		 month_avg_revenue_1 AS month_avg_revenue_1_lag3,
          month_avg_revenue_3 AS month_avg_revenue_3_lag3,
          month_avg_revenue_12 AS month_avg_revenue_12_lag3,
          month_avg_shipments_1 AS month_avg_shipments_1_lag3,
          month_avg_shipments_3 AS month_avg_shipments_3_lag3,
-         month_avg_shipments_12 AS month_avg_shipments_12_lag3,
-         month_avg_sum_volume_1 AS month_avg_sum_volume_1_lag3,
+         month_avg_shipments_12 AS month_avg_shipments_12_lag3
+/*          month_avg_sum_volume_1 AS month_avg_sum_volume_1_lag3,
          month_avg_sum_volume_3 AS month_avg_sum_volume_3_lag3,
          month_avg_sum_volume_12 AS month_avg_sum_volume_12_lag3,
          month_avg_sum_items_1 AS month_avg_sum_items_1_lag3,
@@ -173,7 +177,7 @@ SELECT DISTINCT---dateadd(month,1,m1.dmonth_dt1) AS lag_m,
          month_avg_sum_weight_1 AS month_avg_sum_weight_1_lag3,
          month_avg_sum_weight_3 AS month_avg_sum_weight_3_lag3,
          month_avg_sum_weight_12 AS month_avg_sum_weight_12_lag3
-  FROM stg2_Customer_downtraders_monthly_seq_full
+ */  FROM stg2_Customer_downtraders_monthly_seq_full
   WHERE cus_id > 0
   --acc_country IN ('IE','GB', 'GR', 'PT')
   --AND   all_max_date > 0
@@ -199,18 +203,18 @@ SELECT DISTINCT---dateadd(month,1,m1.dmonth_dt1) AS lag_m,
          cus_id AS cus_id_lag12,
          active_month AS active_month_lag12,
          count_consignments AS count_consignments_lag12,
-         goods_value AS goods_value_lag12,
          shipments AS shipments_lag12,
          revenue AS revenue_lag12,
+/*          goods_value AS goods_value_lag12,
          sum_volume AS sum_volume_lag12,
          sum_items AS sum_items_lag12,
          sum_weight AS sum_weight_lag12,
-         seq_ytd_shipments as seq_ytd_shipments_lag12,
+ */         seq_ytd_shipments as seq_ytd_shipments_lag12,
          seq_ytd_revenue as seq_ytd_revenue_lag12,
-         seq_ytd_volume as seq_ytd_volume_lag12,
+/*          seq_ytd_volume as seq_ytd_volume_lag12,
          seq_ytd_items as seq_ytd_items_lag12,
          seq_ytd_weight as seq_ytd_weight_lag12,
-         /*
+ */         /*
          digital_revenue AS digital_revenue_lag12,
          digital_shipments AS digital_shipments_lag12,
          digital_volume AS digital_volume_lag12,
@@ -225,13 +229,14 @@ SELECT DISTINCT---dateadd(month,1,m1.dmonth_dt1) AS lag_m,
          no_dig_shipments AS no_dig_shipments_lag12,
          no_dig_volume AS no_dig_volume_lag12,
          no_dig_weight AS no_dig_weight_lag12,
-         no_dig_items AS no_dig_items_lag12,*/ month_seq_avg_goods_value AS month_seq_avg_goods_value_lag12,
+         no_dig_items AS no_dig_items_lag12,*/ 
          month_seq_avg_shipments AS month_seq_avg_shipments_lag12,
          month_seq_avg_revenue AS month_seq_avg_revenue_lag12,
+/* 		 month_seq_avg_goods_value AS month_seq_avg_goods_value_lag12,
          month_seq_avg_volume AS month_seq_avg_volume_lag12,
          month_seq_avg_items AS month_seq_avg_items_lag12,
          month_seq_avg_weight AS month_seq_avg_weight_lag12,
-         /* month_seq_std_goods_value AS month_seq_std_goods_value_lag12,
+ */         /* month_seq_std_goods_value AS month_seq_std_goods_value_lag12,
          month_seq_std_shipments AS month_seq_std_shipments_lag12,
          month_seq_std_revenue AS month_seq_std_revenue_lag12,
          month_seq_std_volume AS month_seq_std_volume_lag12,
@@ -241,8 +246,8 @@ SELECT DISTINCT---dateadd(month,1,m1.dmonth_dt1) AS lag_m,
          month_avg_revenue_12 AS month_avg_revenue_12_lag12,
          month_avg_shipments_1 AS month_avg_shipments_1_lag12,
          month_avg_shipments_3 AS month_avg_shipments_3_lag12,
-         month_avg_shipments_12 AS month_avg_shipments_12_lag12,
-         month_avg_sum_volume_1 AS month_avg_sum_volume_1_lag12,
+         month_avg_shipments_12 AS month_avg_shipments_12_lag12
+/*          month_avg_sum_volume_1 AS month_avg_sum_volume_1_lag12,
          month_avg_sum_volume_3 AS month_avg_sum_volume_3_lag12,
          month_avg_sum_volume_12 AS month_avg_sum_volume_12_lag12,
          month_avg_sum_items_1 AS month_avg_sum_items_1_lag12,
@@ -251,7 +256,7 @@ SELECT DISTINCT---dateadd(month,1,m1.dmonth_dt1) AS lag_m,
          month_avg_sum_weight_1 AS month_avg_sum_weight_1_lag12,
          month_avg_sum_weight_3 AS month_avg_sum_weight_3_lag12,
          month_avg_sum_weight_12 AS month_avg_sum_weight_12_lag12
-  FROM stg2_Customer_downtraders_monthly_seq_full
+ */  FROM stg2_Customer_downtraders_monthly_seq_full
   WHERE cus_id > 0
   --acc_country IN ('IE','GB', 'GR', 'PT')
   --AND   all_max_date > 0
@@ -351,8 +356,8 @@ SELECT *,
        CASE
          WHEN month_avg_shipments_12_lag12 > 0 AND month_avg_shipments_12 > 0 THEN month_avg_shipments_12 / month_avg_shipments_12_lag12::DECIMAL(15,3) - 1
          ELSE 0
-       END AS perc_chg_month_avg_shipments_12_lag12,
-       CASE
+       END AS perc_chg_month_avg_shipments_12_lag12
+/*        CASE
          WHEN month_avg_sum_weight_1_lag1 > 0 AND month_avg_sum_weight_1 > 0 THEN month_avg_sum_weight_1 / month_avg_sum_weight_1_lag1::DECIMAL(15,3) - 1
          ELSE 0
        END AS perc_chg_month_avg_sum_weight_1_lag1,
@@ -387,7 +392,7 @@ SELECT *,
        CASE
          WHEN month_avg_sum_weight_12_lag12 > 0 AND month_avg_sum_weight_12 > 0 THEN month_avg_sum_weight_12 / month_avg_sum_weight_12_lag12::DECIMAL(15,3) - 1
          ELSE 0
-       END AS perc_chg_month_avg_sum_weight_12_lag12 /*CASE
+       END AS perc_chg_month_avg_sum_weight_12_lag12 */ /*CASE
          WHEN m_perc_is_sender_pays_lag1 > 0.01 AND m_perc_is_sender_pays > 0.01 THEN m_perc_is_sender_pays / m_perc_is_sender_pays_lag1::DECIMAL(10,3) - 1
          ELSE 0
        END AS perc_chg_m_perc_is_sender_pays_lag1,
@@ -656,6 +661,8 @@ AND   all_sum_revenue < 1000000
 ORDER BY acc_country,
          all_avg_revenue DESC,
          cus_id;
+COMMIT;
+
 GRANT SELECT
   ON table stg3_downtraders_churners_NL_DE_GR_CY_IE
   TO public;         
